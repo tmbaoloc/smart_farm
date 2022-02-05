@@ -1,8 +1,9 @@
 #ifndef VOLTAGE_MONITOH_H
 #define VOLTAGE_MONITOH_H
-#include <EmonLib.h> //Include Emon Library
-#include <Wire.h> // LCD
+#include <EmonLib.h>           //Include Emon Library
+#include <Wire.h>              // LCD
 #include <LiquidCrystal_I2C.h> // LCD
+#include <SoftwareSerial.h>
 
 class VoltageMonitor
 {
@@ -13,6 +14,7 @@ public:
         POWER_LOW,
         POWER_FAILURE
     };
+
 private:
     uint8_t threshold_pin;
     uint8_t button_pin;
@@ -21,70 +23,35 @@ private:
     uint8_t threshold_volt;
     volatile uint8_t state;
     volatile bool isStop;
-    EnergyMonitor *emon; 
+    EnergyMonitor *emon;
     LiquidCrystal_I2C *lcd;
-    
+
 public:
-    VoltageMonitor(LiquidCrystal_I2C *_lcd, EnergyMonitor *_emon)
+    VoltageMonitor()
     {
-        lcd = _lcd;
-        emon = _emon;
+        lcd = nullptr;
+        emon = new EnergyMonitor();
         state = NORMAL;
         isStop = false;
     };
 
-    VoltageMonitor()
-    {
-    };
-
-    ~VoltageMonitor()
-    {
-    };
-
-    VoltageMonitor* GetInstance()
-    {
-        static VoltageMonitor *instance;
-        return instance;
-    };
+    ~VoltageMonitor(){};
 
     uint8_t Monitor();
-    void SetPins(uint8_t _threshold_pin, uint8_t _buzzer_pin, uint8_t _button_pin)
-    {   
-        threshold_pin = _threshold_pin;
-        buzzer_pin = _buzzer_pin;
-        button_pin = _button_pin;
-        
-        pinMode(buzzer_pin, OUTPUT);
-        pinMode(button_pin, INPUT_PULLUP);
-        digitalWrite(buzzer_pin, LOW);
-        
-        // attachInterrupt(digitalPinToInterrupt(button_pin), this->ButtonISR, FALLING);
-    }
 
-    void EnablePowerLow()
-    {
-        digitalWrite(buzzer_pin,HIGH);
-    }
+    void EnablePowerLow();
+    void DisablePowerLow();
 
-    void DisablePowerLow()
-    {
-        digitalWrite(buzzer_pin,LOW);
-    }
+    void SetPins(uint8_t _threshold_pin, uint8_t _buzzer_pin, uint8_t _button_pin);
+    void SetWarning(bool _isWarning);
+    void SetupVoltage(int8_t input_pin, float volt_cal, float phase_shift);
+    void SetupDisplay(uint8_t lcd_addr, uint8_t lcd_width, uint8_t lcd_height);
 
-    void SetWarning(bool _isWarning)
-    {
-        state = _isWarning ? POWER_LOW : POWER_FAILURE;
-    }
-
+    void GetVoltage(uint8_t *_curent_voltage, uint8_t *_threshold_voltage);
 private:
     void CalculateVoltage();
-    void GetVoltage(uint8_t *_curent_voltage, uint8_t *_threshold_voltage)
-    {
-        *_curent_voltage = current_volt;
-        *_threshold_voltage = threshold_volt;
-    };
     void PrintVoltage();
     void StopDisplay();
 };
 
-#endif // 
+#endif /* VOLTAGE_MONITOH_H */
