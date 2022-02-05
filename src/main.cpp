@@ -1,48 +1,50 @@
 #include "Arduino.h"
 #include "voltage_monitor.h"
-#include <Wire.h> // LCD
+#include <Wire.h>              // LCD
 #include <LiquidCrystal_I2C.h> // LCD
-#include "EmonLib.h" //Include Emon Library
+#include "EmonLib.h"           //Include Emon Library
 
+/* LCD definitions */
 #define LCD_WIDTH 16
 #define LCD_HEIGHT 2
-#define VOLT_CAL 258.7 //VALOR DE CALIBRAÇÃO (DEVE SER AJUSTADO EM PARALELO COM UM MULTÍMETRO)**258.7 84%
-#define THRESHOLD 15
-#define BUZZER 9
-#define BUTTON 2
+#define LCD_ADDRESS 0x27
+
+/* Voltage sensor definitions */
+#define VOLT_CAL 258.7
+#define VOLT_PIN 0
+#define VOLT_PHASE_SHIFT 1.7
+
+/* Pin definitions */
+#define PIN_THRESHOLD 15
+#define PIN_BUZZER 9
+#define PIN_BUTTON 2
 
 volatile bool warning = false;
 LiquidCrystal_I2C *lcd = nullptr;
 EnergyMonitor *EM = nullptr;
-VoltageMonitor* VM = nullptr;
+VoltageMonitor *VM = nullptr;
 
 void do_warning()
 {
-  
 }
 
 void button_ISR()
 {
     VM->SetWarning(false);
-    digitalWrite(BUZZER,LOW);
+    digitalWrite(PIN_BUZZER, LOW);
     Serial.println("Warning stop");
 }
 
 void setup()
-{  
+{
     Serial.begin(9600);
-    
-    EM = new EnergyMonitor();
-    EM->voltage(0, VOLT_CAL, 1.7); //Voltage: input pin, calibration, phase_shift
-    
-    lcd = new LiquidCrystal_I2C(0x27, LCD_WIDTH, LCD_HEIGHT); // LCD
-    lcd->init();                      // initialize the lcd 
-    lcd->begin(LCD_WIDTH, LCD_HEIGHT); // LCD
-    lcd->backlight(); // LCD
 
-    VM = new VoltageMonitor(lcd, EM);
-    VM->SetPins(THRESHOLD, BUZZER, BUTTON);
-    attachInterrupt(digitalPinToInterrupt(BUTTON), button_ISR, FALLING);
+    VM = new VoltageMonitor();
+    VM->SetupDisplay(LCD_ADDRESS, LCD_WIDTH, LCD_HEIGHT);
+    VM->SetupVoltage(VOLT_PIN, VOLT_CAL, VOLT_PHASE_SHIFT);
+    VM->SetPins(PIN_THRESHOLD, PIN_BUZZER, PIN_BUTTON);
+
+    attachInterrupt(digitalPinToInterrupt(PIN_BUTTON), button_ISR, FALLING);
 }
 
 void loop()
@@ -59,8 +61,7 @@ void loop()
     }
     else if (ret == VoltageMonitor::POWER_FAILURE)
     {
-        
     }
-    Serial.println("Warning");
+
     delay(500);
 }
